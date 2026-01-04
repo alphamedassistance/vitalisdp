@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms and Access Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* --- SPINNERS & ANIMATIONS --- */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- EMBED STYLES --- */
+        /* Wrapper to ensure full screen overlay */
+        .iframe-cropper-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            z-index: 50;
+            overflow: hidden; /* Critical for cropping */
+        }
+
+        /* 1. Standard Iframe (Generic use) */
+        .embedded-iframe-standard {
+            width: 100%;
+            height: 100vh;
+            border: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        /* 2. Wix Iframe (CROPPING APPLIED HERE) */
+        /* This creates a taller iframe and pulls it up to hide the top banner */
+        .wix-crop-iframe {
+            width: 100%;
+            /* Make height taller than screen to compensate for the pull-up */
+            height: calc(100vh + 60px); 
+            /* Pull the iframe up to hide the Wix banner (adjust px if banner size changes) */
+            margin-top: -55px; 
+            border: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            position: relative;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans flex flex-col justify-center">
+
+    <div id="header" class="container mx-auto px-4 py-12 flex flex-col items-center justify-center transition-all duration-500">
+        
+        <h1 class="text-3xl font-bold text-gray-800 mb-8"></h1>
+
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-200">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Terms of Service</h2>
+            
+            <div class="flex items-start mb-6">
+                <div class="flex items-center h-5">
+                    <input id="terms-checkbox" type="checkbox" class="w-5 h-5 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 cursor-pointer">
+                </div>
+                <label for="terms-checkbox" class="ml-3 text-sm font-medium text-gray-900 cursor-pointer select-none">
+                    I agree to the <a href="#" class="text-blue-600 hover:underline">Privacy Policy</a> and consent to the collection and processing of my personal data.
+                </label>
+            </div>
+
+            <button id="access-button" disabled
+                class="w-full text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all transform scale-100 
+                       bg-gray-400 cursor-not-allowed">
+                Access Now
+            </button>
+        </div>
+
+        <button id="demo-button" class="hidden">Demo</button>
+
+    </div>
+
+    <div id="loading-spinner" class="fixed inset-0 z-[60] flex items-center justify-center bg-white/80 hidden">
+        <div class="loader"></div>
+    </div>
+
+    <div id="iframe-container" class="hidden fixed inset-0 z-50 bg-white">
+        </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- References ---
+            const termsCheckbox = document.getElementById('terms-checkbox');
+            const accessButton = document.getElementById('access-button');
+            const demoButton = document.getElementById('demo-button');
+            
+            const iframeContainer = document.getElementById('iframe-container');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const header = document.getElementById('header');
+
+            // --- URLs ---
+            // 1. Wix URL for Access Button (Needs Cropping)
+            const accessUrl = 'https://alphamedassistance.wixsite.com/pmsapp/home';
+            // 2. Demo URL
+            const demoUrl = 'https://alphamedassistance.wixsite.com/1105';
+
+            // --- Terms & Conditions Logic ---
+            termsCheckbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    // Enable Button
+                    accessButton.disabled = false;
+                    accessButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    accessButton.classList.add('bg-blue-600', 'hover:bg-blue-700', 'hover:scale-105', 'cursor-pointer');
+                } else {
+                    // Disable Button
+                    accessButton.disabled = true;
+                    accessButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+                    accessButton.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'hover:scale-105', 'cursor-pointer');
+                }
+            });
+
+            // --- Core Embed Function ---
+            const loadIframe = (embedUrl, clickedButton, iframeClass) => {
+                loadingSpinner.classList.remove('hidden');
+
+                if (header) {
+                    header.classList.add('opacity-0', 'transform', '-translate-y-4');
+                }
+
+                // 1. Create Wrapper
+                const iframeWrapper = document.createElement('div');
+                iframeWrapper.classList.add('iframe-cropper-wrapper');
+
+                // 2. Create Iframe
+                const iframe = document.createElement('iframe');
+                iframe.src = embedUrl;
+                iframe.id = 'embedded-link';
+                
+                // 3. Apply Class (Determines cropping behavior)
+                iframe.classList.add(iframeClass);
+
+                iframe.onload = () => {
+                    loadingSpinner.classList.add('hidden');
+                    iframe.style.opacity = '1';
+                };
+
+                iframe.onerror = () => {
+                    loadingSpinner.classList.add('hidden');
+                    iframeContainer.innerHTML = '<p class="text-red-500 p-4 bg-red-100 rounded-lg text-center mt-10">Error loading content. Please refresh.</p>';
+                };
+
+                // 4. Append to DOM
+                iframeWrapper.appendChild(iframe);
+                iframeContainer.innerHTML = ''; // Clear previous content
+                iframeContainer.appendChild(iframeWrapper);
+
+                // 5. Create Exit Button
+                const exitButton = document.createElement('button');
+                exitButton.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                `;
+                exitButton.classList.add(
+                    'fixed', 'top-4', 'right-4', 'z-[100]', 
+                    'bg-red-500', 'text-white', 'p-3',
+                    'rounded-full', 'shadow-xl', 
+                    'hover:bg-red-600', 'transition', 'cursor-pointer',
+                    'flex', 'items-center', 'justify-center'
+                );
+
+                // Reload page to reset state on exit
+                exitButton.onclick = () => window.location.reload();
+
+                setTimeout(() => {
+                    if (header) header.classList.add('hidden');
+                    iframeContainer.classList.remove('hidden');
+                    document.body.appendChild(exitButton);
+                    document.body.classList.add('overflow-hidden');
+                }, 300);
+            };
+
+            // --- Event Listeners ---
+
+            // 1. Access Button -> Uses Wix Cropping Class
+            accessButton.addEventListener('click', () => {
+                loadIframe(accessUrl, accessButton, 'wix-crop-iframe');
+            });
+
+            // 2. Demo Button
+            if (demoButton) {
+                demoButton.addEventListener('click', () => {
+                    loadIframe(demoUrl, demoButton, 'wix-crop-iframe');
+                });
+            }
+        });
+    </script>
+</body>
+</html>
